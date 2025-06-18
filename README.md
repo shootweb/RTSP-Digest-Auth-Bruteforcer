@@ -68,4 +68,3 @@ pip install requests urllib3
 This tool is provided **as is** for ethical hacking and security research. Unauthorized access to systems is **illegal**. Always obtain proper authorization before conducting any tests.
 
 ---
-```
