@@ -42,9 +42,11 @@ python rtsp_bruteforce.py 192.168.0.100 Streaming/Channels/1 -U users.txt -P pas
 | `ip`                 | Target IP address                                        |
 | `path`               | RTSP resource path (e.g., `Streaming/Channels/1`)        |
 | `-p`, `--port`       | RTSP port (default: `554`)                               |
-| `-U`, `--userlist`   | Path to a username wordlist (optional)                   |
-| `-P`, `--passlist`   | Path to a password wordlist (optional)                   |
+| `-U`, `--userlist`   | Path to a username wordlist (optional, recommended*)                   |
+| `-P`, `--passlist`   | Path to a password wordlist (optional, recommended*)                   |
 | `-t`, `--throttle`   | Delay (in seconds) between login attempts (default: `0`) |
+
+*If no username/password list is selected, it will try the most simple user/pass combinations (e.g., admin:admin)
 
 ---
 
