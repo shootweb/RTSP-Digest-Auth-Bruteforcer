@@ -1,22 +1,29 @@
-# RTSP Digest Auth Bruteforcer
+# RTSP Digest Brute-Forcer (Socket Version)
 
+A lightweight Python script that brute-forces RTSP endpoints using **Digest Authentication**, implemented entirely with raw sockets for greater control and transparency over the request process.
 
-A Python-based tool to brute-force RTSP endpoints protected with **Digest Authentication**. This script targets RTSP URLs by trying combinations of usernames and passwords, either from wordlists or default values, to identify valid credentials.
-
-> **⚠️ Legal Warning:** This tool is intended for **authorized testing and educational purposes only**. Do not use it against systems without explicit permission.
-
----
-
-## 🔧 Features
-
-- Supports **Digest Auth** for RTSP `DESCRIBE` requests.
-- Accepts custom **username** and **password** wordlists.
-- Includes a fallback to common default credentials.
-- Prints status codes and reports valid credentials upon success.
+> ⚠️ **Legal Notice:** This tool is for **authorized testing and educational purposes only**. Do not use it without explicit permission from the system owner.
 
 ---
 
-## 🧪 Usage
+## 🚀 Features
+
+- Fully socket-based RTSP communication — no third-party HTTP libraries.
+- Parses and handles Digest Authentication challenges (`WWW-Authenticate` header).
+- Accepts custom username and password wordlists.
+- Supports **throttling** between attempts to avoid detection or rate-limiting.
+- Useful for testing IP cameras, NVRs, and other embedded RTSP devices.
+
+---
+
+## 📦 Requirements
+
+- Python 3.x  
+No external libraries required — works with standard Python libraries only.
+
+---
+
+## 🔧 Usage
 
 ```bash
 python rtsp_bruteforce.py <IP> <path> [options]
@@ -25,46 +32,54 @@ python rtsp_bruteforce.py <IP> <path> [options]
 ### Example
 
 ```bash
-python rtsp_bruteforce.py 192.168.1.10 live.sdp -U users.txt -P passwords.txt
+python rtsp_bruteforce.py 192.168.0.100 Streaming/Channels/1 -U users.txt -P passwords.txt -t 0.5
 ```
 
 ### Parameters
 
-| Argument           | Description                                       |
-|--------------------|---------------------------------------------------|
-| `ip`               | Target IP address                                 |
-| `path`             | RTSP path (e.g., `live.sdp`)                      |
-| `-p`, `--port`     | RTSP port (default: `554`)                        |
-| `-U`, `--userlist` | Path to username wordlist (optional)              |
-| `-P`, `--passlist` | Path to password wordlist (optional)              |
+| Argument             | Description                                              |
+|----------------------|----------------------------------------------------------|
+| `ip`                 | Target IP address                                        |
+| `path`               | RTSP resource path (e.g., `Streaming/Channels/1`)        |
+| `-p`, `--port`       | RTSP port (default: `554`)                               |
+| `-U`, `--userlist`   | Path to a username wordlist (optional)                   |
+| `-P`, `--passlist`   | Path to a password wordlist (optional)                   |
+| `-t`, `--throttle`   | Delay (in seconds) between login attempts (default: `0`) |
 
 ---
 
-## 📦 Requirements
+## 🔍 How It Works
 
-- Python 3.x
-- `requests`
-- `urllib3`
+1. Sends a socket-based `OPTIONS` request to retrieve Digest Authentication parameters (`realm`, `nonce`).
+2. Uses `MD5` to compute valid digest responses for each username:password combo.
+3. Sends a `DESCRIBE` request using computed digest headers.
+4. Reports credentials if `200 OK` is received from the target.
 
-Install dependencies using:
+---
 
-```bash
-pip install requests urllib3
+## 🧠 Default Credentials
+
+If no wordlists are provided, the script falls back to:
+
+- **Usernames:** `admin`, `user`, `root`
+- **Passwords:** `admin`, `1234`, `password`, `toor`
+
+---
+
+## ✅ Example Output
+
+```
+[*] Connecting to rtsp://192.168.0.100:554/Streaming/Channels/1
+[*] Starting brute-force...
+[*] Tried admin:admin - Response Length: 452
+[*] Tried admin:1234 - Response Length: 689
+[+] SUCCESS: admin:1234
 ```
 
 ---
 
-## 🧠 How It Works
+## ⚠️ Disclaimer
 
-1. Sends a `DESCRIBE` request to the target RTSP URL.
-2. Extracts `WWW-Authenticate` digest parameters like `realm` and `nonce`.
-3. Iterates over all username/password combinations to compute digest responses.
-4. Sends authenticated requests and checks for `200 OK`.
-
----
-
-## 🛑 Disclaimer
-
-This tool is provided **as is** for ethical hacking and security research. Unauthorized access to systems is **illegal**. Always obtain proper authorization before conducting any tests.
+This tool must only be used in environments where you have **explicit authorization**. Misuse can be illegal and unethical.
 
 ---
