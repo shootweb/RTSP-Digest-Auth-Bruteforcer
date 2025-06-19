@@ -80,7 +80,7 @@ def main():
     args = parser.parse_args()
 
     usernames = load_wordlist(args.userlist, ["admin", "user", "root"])
-    passwords = load_wordlist(args.passlist, ["admin", "1234", "password", "P@ssw0rd"])
+    passwords = load_wordlist(args.passlist, ["admin", "1234", "password", "toor"])
     uri = f"/{args.path}"
 
     print(f"[*] Connecting to rtsp://{args.ip}:{args.port}{uri}")
@@ -121,7 +121,7 @@ def main():
                     if "200 OK" in resp:
                         print(f"[+] SUCCESS: {username}:{password}")
                         return
-                    break
+                    break  # go to next password
 
                 retry_attempts += 1
                 if retry_attempts == 1:
@@ -141,7 +141,7 @@ def main():
                 time.sleep(args.cooldown_duration)
                 attempt_counter = 0
 
-            # Static + random throttle
+            # Ensure delay is always applied
             if args.throttle > 0:
                 time.sleep(args.throttle)
             if args.random > 0:
