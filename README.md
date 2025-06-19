@@ -1,29 +1,22 @@
-# RTSP Digest Brute-Forcer (Socket Version)
+# RTSP Digest Brute-Forcer (Advanced Version)
 
-A lightweight Python script that brute-forces RTSP endpoints using **Digest Authentication**, implemented entirely with raw sockets for greater control and transparency over the request process.
+A powerful RTSP Digest Authentication brute-force tool built using raw sockets for stealthy probing. This version includes adaptive retry handling, request throttling, randomized delays, and cooldowns to help bypass rate-limiting or temporary bans from RTSP servers.
 
-> ⚠️ **Legal Notice:** This tool is for **authorized testing and educational purposes only**. Do not use it without explicit permission from the system owner.
-
----
-
-## 🚀 Features
-
-- Fully socket-based RTSP communication — no third-party HTTP libraries.
-- Parses and handles Digest Authentication challenges (`WWW-Authenticate` header).
-- Accepts custom username and password wordlists.
-- Supports **throttling** between attempts to avoid detection or rate-limiting.
-- Useful for testing IP cameras, NVRs, and other embedded RTSP devices.
+> ⚠️ **Legal Warning:** Use this tool **only on systems you are authorized to test**. Unauthorized use is illegal and unethical.
 
 ---
 
-## 📦 Requirements
+## 🔧 Features
 
-- Python 3.x  
-No external libraries required — works with standard Python libraries only.
+- ✅ Raw socket-based RTSP communication
+- 🔄 Automatic retry logic for dropped or empty responses
+- 🕒 Custom **throttle delay** and **random jitter** between attempts
+- 🛑 **Cooldown** period after configurable number of attempts
+- 📂 Accepts custom username and password wordlists
 
 ---
 
-## 🔧 Usage
+## 🧪 Usage
 
 ```bash
 python rtsp_bruteforce.py <IP> <path> [options]
@@ -32,49 +25,61 @@ python rtsp_bruteforce.py <IP> <path> [options]
 ### Example
 
 ```bash
-python rtsp_bruteforce.py 192.168.0.100 Streaming/Channels/1 -U users.txt -P passwords.txt -t 0.5
+python rtsp_bruteforce.py 192.168.0.150 Streaming/Channels/1 -U users.txt -P passwords.txt -t 0.2 --random 0.1 --cooldown-after 4 --cooldown-duration 60
 ```
 
-### Parameters
+---
 
-| Argument             | Description                                              |
-|----------------------|----------------------------------------------------------|
-| `ip`                 | Target IP address                                        |
-| `path`               | RTSP resource path (e.g., `Streaming/Channels/1`)        |
-| `-p`, `--port`       | RTSP port (default: `554`)                               |
-| `-U`, `--userlist`   | Path to a username wordlist (optional, recommended*)                   |
-| `-P`, `--passlist`   | Path to a password wordlist (optional, recommended*)                   |
-| `-t`, `--throttle`   | Delay (in seconds) between login attempts (default: `0`) |
+## 🧾 Arguments
+
+| Argument                | Description                                                                 |
+|-------------------------|-----------------------------------------------------------------------------|
+| `ip`                    | Target IP address                                                           |
+| `path`                  | RTSP path (e.g., `Streaming/Channels/1`)                                    |
+| `-p`, `--port`          | RTSP port (default: `554`)                                                  |
+| `-U`, `--userlist`      | Path to username wordlist                                                   |
+| `-P`, `--passlist`      | Path to password wordlist                                                   |
+| `-t`, `--throttle`      | Static delay between attempts in seconds (default: `0.0`)                   |
+| `--random`              | Adds random delay of 0 to N seconds (e.g., `--random 0.2`)                  |
+| `--cooldown-after`      | Number of attempts before cooldown is triggered (e.g., `4`)                |
+| `--cooldown-duration`   | Cooldown duration in seconds (default: `60`)                                |
 
 *If no username/password list is selected, it will try the most simple user/pass combinations (e.g., admin:admin)
 
 ---
 
-## 🔍 How It Works
+## 🔍 Default Wordlists
 
-1. Sends a socket-based `OPTIONS` request to retrieve Digest Authentication parameters (`realm`, `nonce`).
-2. Uses `MD5` to compute valid digest responses for each username:password combo.
-3. Sends a `DESCRIBE` request using computed digest headers.
-4. Reports credentials if `200 OK` is received from the target.
-
----
-
-## 🧠 Default Credentials
-
-If no wordlists are provided, the script falls back to:
+If not specified, the script uses built-in defaults:
 
 - **Usernames:** `admin`, `user`, `root`
-- **Passwords:** `admin`, `1234`, `password`, `toor`
+- **Passwords:** `admin`, `1234`, `password`, `P@ssw0rd`
 
 ---
 
-## ✅ Example Output
+## 🧠 How It Works
+
+1. Sends an `OPTIONS` RTSP request to trigger the `WWW-Authenticate: Digest` challenge.
+2. Parses the `realm` and `nonce` values from the challenge.
+3. Brute-forces `username:password` pairs by computing valid digest responses.
+4. Implements:
+   - **Retry logic** for empty responses
+   - **Increasing delay** on repeated failure
+   - **Cooldown** after N attempts
+   - **Random delay** for anti-detection purposes
+5. Detects success when server responds with `200 OK`.
+
+---
+
+## ✅ Sample Output
 
 ```
-[*] Connecting to rtsp://192.168.0.100:554/Streaming/Channels/1
+[*] Connecting to rtsp://192.168.0.150:554/Streaming/Channels/1
 [*] Starting brute-force...
-[*] Tried admin:admin - Response Length: 452
-[*] Tried admin:1234 - Response Length: 689
+[*] Tried admin:1234 - Response Length: 421
+[!] Empty response, retrying admin:1234 once...
+[!] Still empty. Increasing delay to 0.1s (Attempt 2)
+[*] Tried admin:1234 - Response Length: 782
 [+] SUCCESS: admin:1234
 ```
 
@@ -82,6 +87,6 @@ If no wordlists are provided, the script falls back to:
 
 ## ⚠️ Disclaimer
 
-This tool must only be used in environments where you have **explicit authorization**. Misuse can be illegal and unethical.
+This tool is intended for **ethical hacking**, **red teaming**, and **research** on systems you **own or are permitted to test**. Misuse may result in legal consequences.
 
 ---
