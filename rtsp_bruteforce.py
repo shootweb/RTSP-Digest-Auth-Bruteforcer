@@ -73,7 +73,7 @@ def main():
     parser.add_argument("-p", "--port", type=int, default=554, help="RTSP port (default: 554)")
     parser.add_argument("-U", "--userlist", help="Path to username wordlist")
     parser.add_argument("-P", "--passlist", help="Path to password wordlist")
-    parser.add_argument("-t", "--throttle", type=float, default=0.0, help="Throttle (delay) between attempts in seconds")
+    parser.add_argument("-t", "--throttle", type=float, default=0.0, help="Minimum delay between attempts in seconds")
     parser.add_argument("--random", type=float, default=0.0, help="Extra random delay per attempt (0 to n seconds)")
     parser.add_argument("--cooldown-after", type=int, default=0, help="Cooldown after this many attempts")
     parser.add_argument("--cooldown-duration", type=int, default=60, help="Cooldown duration in seconds")
@@ -141,13 +141,12 @@ def main():
                 time.sleep(args.cooldown_duration)
                 attempt_counter = 0
 
-            # Ensure delay is always applied
-            if args.throttle > 0:
-                time.sleep(args.throttle)
-            if args.random > 0:
-                delay = random.uniform(0, args.random)
-                print(f"[*] Random delay: {delay:.3f}s")
-                time.sleep(delay)
+            # 🔁 Correct fixed + random delay application
+            if args.throttle > 0 or args.random > 0:
+                extra = random.uniform(0, args.random)
+                total_delay = args.throttle + extra
+                print(f"[*] Sleeping {total_delay:.3f}s before next attempt")
+                time.sleep(total_delay)
 
     print("[-] Brute-force complete. No valid credentials found.")
 
